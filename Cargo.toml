@@ -1,0 +1,66 @@
+[package]
+authors = ["Your name <your@em.ail>"]
+name = "project_name"
+edition = "2021"
+version = "0.1.0"
+
+[dependencies]
+#defmt = "^0.3.5"
+#defmt-rtt = "^0.4.0"
+#panic-probe = { version = "^0.3.1", features = ["print-defmt"] }
+
+# todo: Update these versions and remove unused ones A/R.
+hal = { package = "esp32c3-hal", version = "0.14.0" }
+#hal = { package = "esp32c3-hal", version = "0.13.0" }
+#esp-backtrace = { version = "0.9.0", features = ["esp32c3", "panic-handler", "exception-handler", "print-uart"] }
+#esp-println = { version = "0.8.0", features = ["esp32c3"] }
+
+#esp-wifi  = { version = "0.1.1", features = ["esp32c3", "wifi"] }
+#smoltcp = { version = "0.11.0", default-features=false, features = ["proto-igmp", "proto-ipv4", "socket-tcp", "socket-icmp", "socket-udp", "medium-ethernet", "proto-dhcpv4", "socket-raw", "socket-dhcpv4"] }
+#embedded-svc = { version = "0.25.0", default-features = false, features = [] }
+#embedded-io = "0.6.1"
+#heapless = { version = "0.8.0", default-features = false }
+
+# todo: Dependency conflict workaround. Temp
+#critical-section   = "1.1.2"
+#static_cell = { version = "=1.2.0", features = ["nightly"] }
+
+# todo: Put back once past the initial compile issues
+
+## cargo build/run
+#[profile.dev]
+#codegen-units = 1
+#debug = 2
+#debug-assertions = true # <-
+#incremental = false
+#opt-level = 3 # <-
+#overflow-checks = true # <-
+#
+## cargo test
+#[profile.test]
+#codegen-units = 1
+#debug = 2
+#debug-assertions = true # <-
+#incremental = false
+#opt-level = 3 # <-
+#overflow-checks = true # <-
+#
+## cargo build/run --release
+#[profile.release]
+#codegen-units = 1
+#debug = 2
+#debug-assertions = false # <-
+#incremental = false
+#lto = 'fat'
+#opt-level = 3 # <-
+#overflow-checks = false # <-
+#
+## cargo test --release
+#[profile.bench]
+#codegen-units = 1
+#debug = 2
+#debug-assertions = false # <-
+#incremental = false
+#lto = 'fat'
+#opt-level = 3 # <-
+#overflow-checks = false # <-
