@@ -28,7 +28,7 @@ pub fn run() {
         system.radio_clock_control,
         &clocks,
     )
-        .unwrap();
+    .unwrap();
 
     loop {
         println!("Loop...");
