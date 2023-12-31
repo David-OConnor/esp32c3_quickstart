@@ -4,19 +4,13 @@
 #![no_main]
 #![no_std]
 
-
-use hal::{clock::ClockControl, peripherals::Peripherals, prelude::*, Delay};
-
-// use esp_wifi::{initialize, EspWifiInitFor};
-
-use hal::{systimer::SystemTimer, Rng};
-
 // use defmt_rtt as _;
-// use panic_probe as _;
 // use defmt::println;
-
-// use esp_backtrace as _;
-// use esp_println::println;
+use esp_backtrace as _; // Required for the panic handler.
+use esp_println::println;
+use hal::{clock::ClockControl, peripherals::Peripherals, prelude::*, Delay};
+// use esp_wifi::{initialize, EspWifiInitFor};
+use hal::{systimer::SystemTimer, Rng};
 
 mod init;
 mod setup;
@@ -53,7 +47,10 @@ pub struct Config {}
 
 #[entry]
 fn main() -> ! {
+    // println!("Pre-init");
     init::run();
+
+    println!("Post-init");
 
     loop {
         // todo?
@@ -61,10 +58,3 @@ fn main() -> ! {
         // cortex_m::asm::nop();
     }
 }
-
-// // same panicking *behavior* as `panic-probe` but doesn't print a panic message
-// // this prevents the panic message being printed *twice* when `defmt::panic` is invoked
-// #[defmt::panic_handler]
-// fn panic() -> ! {
-//     cortex_m::asm::udf()
-// }
