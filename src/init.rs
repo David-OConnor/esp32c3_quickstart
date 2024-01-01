@@ -1,19 +1,24 @@
 //! This module contains initialization code, run once at program start.
 
+use embedded_io::*;
+use embedded_svc::{
+    ipv4::Interface,
+    wifi::{AccessPointConfiguration, AccessPointInfo, ClientConfiguration, Configuration, Wifi},
+};
 use esp_println::println;
-use embedded_svc::ipv4::Interface;
-use embedded_svc::wifi::{AccessPointConfiguration, Configuration, Wifi};
 use esp_wifi::{
     current_millis, initialize,
-    wifi::{utils::create_network_interface, WifiApDevice},
+    wifi::{utils::create_network_interface, WifiApDevice, WifiError, WifiStaDevice},
     wifi_interface::WifiStack,
-    EspWifiInitFor,
-    EspWifiInitialization,
+    EspWifiInitFor, EspWifiInitialization,
 };
 use hal::{
     clock::ClockControl, peripherals::Peripherals, prelude::*, systimer::SystemTimer, Delay, Rng,
 };
 use smoltcp::iface::SocketStorage;
+
+const SSID: &str = "temp";
+const PASSWORD: &str = "temp";
 
 use crate::setup;
 
@@ -31,7 +36,6 @@ fn parse_ip(ip: &str) -> [u8; 4] {
 // fn wifi_ap_test(peripherals: &Peripherals, init: &EspWifiInitialization) {
 // fn wifi_ap_test(peripherals: Peripherals, init: &EspWifiInitialization) {
 fn wifi_ap_test(init: &EspWifiInitialization) {
-    // todo: steal temp.
     let peripherals = unsafe { Peripherals::steal() };
 
     let wifi = peripherals.WIFI;
@@ -70,6 +74,38 @@ fn wifi_ap_test(init: &EspWifiInitialization) {
     println!("Use a static IP in the range 192.168.2.2 .. 192.168.2.255, use gateway 192.168.2.1");
 }
 
+pub fn list_aps(init: &EspWifiInitialization) {
+    let peripherals = unsafe { Peripherals::steal() };
+
+    let wifi = peripherals.WIFI;
+    let mut socket_set_entries: [SocketStorage; 3] = Default::default();
+    let (iface, device, mut controller, sockets) =
+        create_network_interface(&init, wifi, WifiStaDevice, &mut socket_set_entries).unwrap();
+    let wifi_stack = WifiStack::new(iface, device, sockets, current_millis);
+
+    let client_config = Configuration::Client(ClientConfiguration {
+        ssid: SSID.try_into().unwrap(),
+        password: PASSWORD.try_into().unwrap(),
+        ..Default::default()
+    });
+    let res = controller.set_configuration(&client_config);
+    println!("wifi_set_configuration returned {:?}", res);
+
+    controller.start().unwrap();
+    println!("is wifi started: {:?}", controller.is_started());
+
+    println!("Start Wifi Scan");
+    let res: Result<(heapless::Vec<AccessPointInfo, 10>, usize), WifiError> = controller.scan_n();
+    if let Ok((res, _count)) = res {
+        for ap in res {
+            println!("{:?}", ap);
+        }
+    }
+
+    println!("{:?}", controller.get_capabilities());
+    println!("wifi_connect {:?}", controller.connect());
+}
+
 pub fn run() {
     let peripherals = Peripherals::take();
     let system = peripherals.SYSTEM.split();
@@ -90,7 +126,9 @@ pub fn run() {
     .unwrap();
 
     // wifi_ap_test(peripherals, &init);
-    wifi_ap_test(&init);
+    // wifi_ap_test(&init);
+
+    list_aps(&init);
 
     loop {
         println!("Loop...");
