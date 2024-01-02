@@ -23,9 +23,9 @@ rustflags = [
 
 target = "riscv32imc-unknown-none-elf"
 
-# todo: This triggers a mysterious toolchain error.
-#[unstable]
-#build-std = ["core"]
+[unstable]
+#build-std = ["alloc", "core"]
+build-std = ["core"]
 
 [alias]
 rb = "run --bin"

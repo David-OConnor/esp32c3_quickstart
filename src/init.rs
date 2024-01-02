@@ -5,6 +5,8 @@ use embedded_svc::{
     ipv4::Interface,
     wifi::{AccessPointConfiguration, AccessPointInfo, ClientConfiguration, Configuration, Wifi},
 };
+// todo: defmt leads to link errors here, but not elsewhere(?)
+// use defmt::println;  // todo: After next HAL release.
 use esp_println::println;
 use esp_wifi::{
     current_millis, initialize,
@@ -15,15 +17,15 @@ use esp_wifi::{
 use hal::{
     clock::ClockControl, peripherals::Peripherals, prelude::*, systimer::SystemTimer, Delay, Rng,
 };
+use heapless::Vec;
 use smoltcp::iface::SocketStorage;
+
+use crate::setup;
 
 const SSID: &str = "temp";
 const PASSWORD: &str = "temp";
 
-use crate::setup;
-
-// todo: defmt leads to link errors here, but not elsewhere(?)
-// use defmt::println;
+const MAX_NUM_APS: usize = 20;
 
 fn parse_ip(ip: &str) -> [u8; 4] {
     let mut result = [0u8; 4];
@@ -74,13 +76,17 @@ fn wifi_ap_test(init: &EspWifiInitialization) {
     println!("Use a static IP in the range 192.168.2.2 .. 192.168.2.255, use gateway 192.168.2.1");
 }
 
-pub fn list_aps(init: &EspWifiInitialization) {
+/// List nearby Wi-Fi access points.
+pub fn list_aps(
+    init: &EspWifiInitialization,
+) -> Result<(Vec<AccessPointInfo, MAX_NUM_APS>, usize), WifiError> {
     let peripherals = unsafe { Peripherals::steal() };
 
     let wifi = peripherals.WIFI;
     let mut socket_set_entries: [SocketStorage; 3] = Default::default();
     let (iface, device, mut controller, sockets) =
         create_network_interface(&init, wifi, WifiStaDevice, &mut socket_set_entries).unwrap();
+
     let wifi_stack = WifiStack::new(iface, device, sockets, current_millis);
 
     let client_config = Configuration::Client(ClientConfiguration {
@@ -88,23 +94,24 @@ pub fn list_aps(init: &EspWifiInitialization) {
         password: PASSWORD.try_into().unwrap(),
         ..Default::default()
     });
+
     let res = controller.set_configuration(&client_config);
     println!("wifi_set_configuration returned {:?}", res);
 
     controller.start().unwrap();
-    println!("is wifi started: {:?}", controller.is_started());
+    println!("Wifi started: {:?}", controller.is_started());
 
-    println!("Start Wifi Scan");
-    let res: Result<(heapless::Vec<AccessPointInfo, 10>, usize), WifiError> = controller.scan_n();
-    if let Ok((res, _count)) = res {
-        for ap in res {
-            println!("{:?}", ap);
-        }
-    }
+    println!("Starting Wifi Scan...");
+    let res: Result<(Vec<AccessPointInfo, MAX_NUM_APS>, usize), WifiError> = controller.scan_n();
 
     println!("{:?}", controller.get_capabilities());
-    println!("wifi_connect {:?}", controller.connect());
+    // println!("wifi_connect {:?}", controller.connect());
+
+    res
 }
+
+/// List nearby bluetooth devices
+pub fn list_bluetooth(init: &EspWifiInitialization) {}
 
 pub fn run() {
     let peripherals = Peripherals::take();
@@ -128,10 +135,19 @@ pub fn run() {
     // wifi_ap_test(peripherals, &init);
     // wifi_ap_test(&init);
 
-    list_aps(&init);
-
     loop {
-        println!("Loop...");
-        delay.delay_ms(500u32);
+        println!("\nAPs:");
+
+        let aps = list_aps(&init);
+        let btle_devices = list_bluetooth(&init);
+
+        if let Ok((res, _count)) = aps {
+            println!("APs OK");
+            for ap in res {
+                println!("{:?}", ap);
+            }
+        }
+
+        delay.delay_ms(5_000u32);
     }
 }
