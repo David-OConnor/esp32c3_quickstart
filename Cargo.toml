@@ -28,8 +28,12 @@ embedded-svc = { version = "^0.26.4", default-features = false, features = [] }
 smoltcp = { version = "0.10.0", default-features=false, features = ["proto-igmp", "proto-ipv4", "socket-tcp", "socket-icmp", "socket-udp", "medium-ethernet", "proto-dhcpv4", "socket-raw", "socket-dhcpv4"] }
 #embedded-io = {  version = "^0.6.1", features = ["defmt"] }
 embedded-io = "^0.6.1"
+# Heapless must be tied to a specific version as well.
 #heapless = { version = "0.8.0", default-features = false }
 heapless = { version = "0.7.6", default-features = false }
+
+# Experimental BLE
+bleps = { git = "https://github.com/bjoernQ/bleps?rev=0db8fcb#0db8fcb7", features = ["macros", "defmt"] }
 
 # todo: Temp
 [patch.crates-io]

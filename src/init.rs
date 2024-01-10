@@ -1,5 +1,13 @@
 //! This module contains initialization code, run once at program start.
 
+use bleps::{
+    ad_structure::{
+        create_advertising_data, AdStructure, BR_EDR_NOT_SUPPORTED, LE_GENERAL_DISCOVERABLE,
+    },
+    att::Uuid,
+    attribute_server::{AttributeServer, NotificationData, WorkResult},
+    gatt, Ble, HciConnector,
+};
 use embedded_io::*;
 use embedded_svc::{
     ipv4::Interface,
@@ -9,6 +17,7 @@ use embedded_svc::{
 // use defmt::println;  // todo: After next HAL release.
 use esp_println::println;
 use esp_wifi::{
+    ble::controller::BleConnector,
     current_millis, initialize,
     wifi::{utils::create_network_interface, WifiApDevice, WifiError, WifiStaDevice},
     wifi_interface::WifiStack,
@@ -81,8 +90,8 @@ pub fn list_aps(
     init: &EspWifiInitialization,
 ) -> Result<(Vec<AccessPointInfo, MAX_NUM_APS>, usize), WifiError> {
     let peripherals = unsafe { Peripherals::steal() };
-
     let wifi = peripherals.WIFI;
+
     let mut socket_set_entries: [SocketStorage; 3] = Default::default();
     let (iface, device, mut controller, sockets) =
         create_network_interface(&init, wifi, WifiStaDevice, &mut socket_set_entries).unwrap();
@@ -111,7 +120,28 @@ pub fn list_aps(
 }
 
 /// List nearby bluetooth devices
-pub fn list_bluetooth(init: &EspWifiInitialization) {}
+pub fn list_bluetooth(init: &EspWifiInitialization) {
+    let peripherals = unsafe { Peripherals::steal() };
+    let bluetooth = peripherals.BT;
+
+    let connector = BleConnector::new(&init, bluetooth);
+    let hci = HciConnector::new(connector, esp_wifi::current_millis);
+    let mut ble = Ble::new(&hci);
+
+    ble.cmd_set_le_scan_rsp_data(
+        // todo temp
+        create_advertising_data(&[
+            AdStructure::Flags(LE_GENERAL_DISCOVERABLE | BR_EDR_NOT_SUPPORTED),
+            AdStructure::ServiceUuids16(&[Uuid::Uuid16(0x1809)]),
+            // AdStructure::CompleteLocalName(examples_util::SOC_NAME),
+            AdStructure::CompleteLocalName("TEST"),
+        ])
+        .unwrap(),
+    )
+    .unwrap();
+
+    println!("BLE init: {:?}", ble.init());
+}
 
 pub fn run() {
     let peripherals = Peripherals::take();
@@ -123,8 +153,11 @@ pub fn run() {
     println!("Hello world!");
     let timer = SystemTimer::new(peripherals.SYSTIMER).alarm0;
 
+    setup::setup(&clocks);
+
     let init = initialize(
-        EspWifiInitFor::Wifi,
+        // EspWifiInitFor::Wifi,
+        EspWifiInitFor::WifiBle,
         timer,
         Rng::new(peripherals.RNG),
         system.radio_clock_control,
@@ -136,13 +169,11 @@ pub fn run() {
     // wifi_ap_test(&init);
 
     loop {
-        println!("\nAPs:");
-
         let aps = list_aps(&init);
         let btle_devices = list_bluetooth(&init);
 
+        println!("\nAPs:");
         if let Ok((res, _count)) = aps {
-            println!("APs OK");
             for ap in res {
                 println!("{:?}", ap);
             }

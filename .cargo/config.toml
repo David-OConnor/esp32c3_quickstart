@@ -1,6 +1,8 @@
 [target.riscv32imc-unknown-none-elf]
 #[target.'cfg(all(target_arch = "riscv", target_os = "none"))']
 runner = "espflash flash --monitor"
+# todo: --format esp-idf isn't required in the next version of probe-rs.
+#runner = "probe-rs run --chip esp32c3 --format esp-idf" # to list chips, run `probe-rs chip list.`
 #runner = "probe-rs run --chip esp32c3" # to list chips, run `probe-rs chip list.`
 
 
@@ -31,3 +33,4 @@ build-std = ["core"]
 rb = "run --bin"
 rrb = "run --release --bin"
 rr = "run --release"
+br = "build --release"
